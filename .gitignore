@@ -1,0 +1,15 @@
+# secrets & local config
+.env
+*.env.local
+local.properties
+google-services.json
+serviceAccountKey*.json
+*.jks
+*.keystore
+# build output
+node_modules/
+build/
+.gradle/
+.idea/
+*.apk
+*.aab
