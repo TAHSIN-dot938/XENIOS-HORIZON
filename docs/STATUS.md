@@ -10,7 +10,7 @@ Legend: ✅ done and verified here · 🟡 written, NOT yet run/built · ⬜ not
 | Database schema, RLS, RPCs, storage | 🟡 | Written carefully, never run on Postgres. Apply to a scratch Supabase project first |
 | Android project, theme, design system, splash, auth UI | 🟡 | Passed static bracket/token checks only. **Not compiled** (no Android SDK in my environment) |
 | Android unit tests (validators, auth API/repository/session) | 🟡 | Run with `./gradlew test` in Android Studio; I could not run them |
-| **Phase 3: Auth data layer** (GoTrue client, session store w/ Keystore encryption, refresh + offline start, profile load) | 🟡 | Written + 36 JVM unit tests written (fake HTTP). **Not compiled or run** — no Kotlin toolchain here |
+| **Phase 3: Auth data layer** (GoTrue client, session store w/ Keystore encryption, refresh + offline start, profile load) | 🟡 | Written + 29 new JVM unit tests written (fake HTTP; 33 Android tests in total with validators). **Not compiled or run** — no Kotlin toolchain here |
 | **Phase 3: Auth UI** (login, signup, emailed-code confirm, forgot/reset password, sign out, profile screen with 14-digit ID, not-configured screen) | 🟡 | Real flow, unverified on device |
 | `0002_auth_helpers.sql` (`username_available`) | 🟡 | Additive; never executed |
 | Profiles, friends, messaging, global chat, receipts, typing | ⬜ | Backend/DB side ready; Android side Phases 3–5 |
