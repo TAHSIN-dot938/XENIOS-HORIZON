@@ -24,5 +24,9 @@ object Validators {
         else -> null
     }
 
+    /** Emailed one-time code (Supabase default is 6 digits; configurable up to 10). */
+    fun code(value: String): String? =
+        if (value.trim().let { it.length in 6..10 && it.all(Char::isDigit) }) null else "Enter the code from your email"
+
     fun existingPassword(value: String): String? = if (value.isEmpty()) "Enter your password" else null
 }

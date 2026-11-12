@@ -4,6 +4,7 @@
 | Call | Purpose |
 |---|---|
 | `rpc/search_users {p_query}` | By username prefix, or exact 14-digit ID. Returns relation: self/friend/outgoing/incoming/none (max 20) |
+| `rpc/username_available {p_username}` | **anon allowed.** True if format-valid and unused (signup pre-check) |
 | `rpc/send_friend_request {p_target}` | Creates request; auto-accepts if they already asked you |
 | `rpc/respond_friend_request {p_id, p_accept}` | Addressee only; reject deletes the request |
 | `rpc/remove_friend {p_other}` | |
@@ -27,3 +28,6 @@ Realtime: Postgres Changes on `messages`, `notifications`, `friendships`; Broadc
 
 Socket.IO (`auth: {token: <JWT>}`): client→server `call:invite {calleeId, kind}`, `call:accept|decline|cancel|end {callId}`, `call:signal {callId, type?, sdp?, candidate?}`;
 server→client `call:incoming`, `call:accepted`, `call:signal`, `call:ended {callId, status, reason}`. Ring timeout 45 s → missed call + notification.
+
+## Supabase Auth (GoTrue) calls the app makes
+`POST /auth/v1/signup` (data: username, display_name) · `POST /auth/v1/token?grant_type=password|refresh_token` · `POST /auth/v1/verify` (type signup|recovery, email + code) · `POST /auth/v1/recover` · `PUT /auth/v1/user` (new password) · `POST /auth/v1/logout`.

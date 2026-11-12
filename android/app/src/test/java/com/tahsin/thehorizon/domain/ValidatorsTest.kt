@@ -26,4 +26,11 @@ class ValidatorsTest {
         assertEquals("Include at least one number", Validators.newPassword("abcdefgh"))
         assertEquals("Enter your password", Validators.existingPassword(""))
     }
+
+    @Test fun codeRules() {
+        assertNull(Validators.code("123456"))
+        assertNull(Validators.code(" 12345678 "))
+        assertEquals("Enter the code from your email", Validators.code("12345"))
+        assertEquals("Enter the code from your email", Validators.code("12ab56"))
+    }
 }

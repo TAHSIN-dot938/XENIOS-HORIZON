@@ -1,0 +1,18 @@
+# Free tier Supabase projects pause after ~7 days without activity.
+# This pings the database every 3 days from GitHub Actions (free). Set repo secrets:
+#   SUPABASE_URL, SUPABASE_ANON_KEY
+name: supabase-keepalive
+on:
+  schedule: [{ cron: "17 6 */3 * *" }]
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Touch the database
+        run: |
+          curl -fsS -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/username_available" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"p_username":"keepalive"}'
