@@ -21,7 +21,7 @@ class ProfileRepository(
     suspend fun loadOwn(userId: String): Profile {
         val token = auth.validAccessToken()
         val headers = mapOf("apikey" to anonKey, "Authorization" to "Bearer $token")
-        val url = "$restUrl/profiles?id=eq.$userId&select=id,user_number,username,display_name,bio,avatar_style"
+        val url = "$restUrl/profiles?id=eq.$userId&select=id,user_number,username,display_name,bio,avatar_style,show_online"
         val res = try {
             http.send("GET", url, headers)
         } catch (e: IOException) {
@@ -39,6 +39,7 @@ class ProfileRepository(
                 displayName = o.getString("display_name"),
                 bio = o.optString("bio"),
                 avatarStyle = o.optInt("avatar_style", 0),
+                showOnline = o.optBoolean("show_online", true),
             )
         } catch (e: JSONException) {
             throw ApiException(res.code, "Unexpected response while loading your profile.")

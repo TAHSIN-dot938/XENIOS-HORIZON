@@ -1,29 +1,44 @@
 # Status (honest)
 
-Legend: ✅ done and verified here · 🟡 written, NOT yet run/built · ⬜ not started
+Legend: ✅ verified here by execution · 🟡 written, NOT executed (needs your Android Studio / Supabase) · ⬜ not started
 
-| Area | State | Notes |
+## Verification environment limits
+My cloud environment has **no Android SDK, Kotlin compiler, Postgres or network**. So Kotlin and SQL can only be statically
+checked here (balanced syntax, every project import resolves, no used-but-unimported project symbols). Anything marked 🟡
+must be confirmed by you with the steps in `docs/SETUP.md` ("Verify it works").
+
+| Area | State | Evidence |
 |---|---|---|
-| Architecture + docs | ✅ | `docs/ARCHITECTURE.md` |
-| Backend pure logic (call state machine, validation, push rules, TURN creds) | ✅ | 20 tests pass (`cd backend && node --test`) |
-| Backend server wiring (Express, Socket.IO, FCM, Supabase) | 🟡 | Needs `npm install` + real credentials; never executed |
-| Database schema, RLS, RPCs, storage | 🟡 | Written carefully, never run on Postgres. Apply to a scratch Supabase project first |
-| Android project, theme, design system, splash, auth UI | 🟡 | Passed static bracket/token checks only. **Not compiled** (no Android SDK in my environment) |
-| Android unit tests (validators, auth API/repository/session) | 🟡 | Run with `./gradlew test` in Android Studio; I could not run them |
-| **Phase 3: Auth data layer** (GoTrue client, session store w/ Keystore encryption, refresh + offline start, profile load) | 🟡 | Written + 29 new JVM unit tests written (fake HTTP; 33 Android tests in total with validators). **Not compiled or run** — no Kotlin toolchain here |
-| **Phase 3: Auth UI** (login, signup, emailed-code confirm, forgot/reset password, sign out, profile screen with 14-digit ID, not-configured screen) | 🟡 | Real flow, unverified on device |
-| `0002_auth_helpers.sql` (`username_available`) | 🟡 | Additive; never executed |
-| Profiles, friends, messaging, global chat, receipts, typing | ⬜ | Backend/DB side ready; Android side Phases 3–5 |
-| FCM, voice messages, image sharing | ⬜ | Phase 6 |
-| Voice/video calling | ⬜ | Signaling backend written; WebRTC client Phase 7; TURN decision needed |
-| Customization/settings | ⬜ | Phase 8 |
-| Debug APK | ⬜ | Cannot be built in my environment (no Android SDK, no network). Build in Android Studio |
+| Backend logic: call state machine, validation, push rules, TURN creds | ✅ | 20 Node tests pass |
+| **Realtime protocol logic** (frames, join payloads, presence fold, multi-device) via the JS mirror `tools/protocol.mjs` | ✅ | 10 Node tests pass (30 total, `cd backend && node --test`) |
+| Kotlin `PhoenixProtocol` / `PresenceTracker` (same logic as the JS mirror) | 🟡 | 13 Kotlin tests written, not run |
+| Real Supabase Realtime compatibility (auth, joins, heartbeat, presence, change events) | 🟡 | **Unverified against a live server.** Run `tools/realtime-smoke.mjs` (free) |
+| Phase 3 auth (data layer + UI) | 🟡 | 33 Kotlin tests; unchanged by Phase 4 except the optional `minValiditySec` argument (default = old behavior, new test added) |
+| **Phase 4** social data layer (search, friendships, requests, parsing, friendly errors) | 🟡 | 23 Kotlin tests written, not run |
+| Phase 4 UI: Friends (online/offline sections), Discover (debounced search), Requests, bottom navigation, toasts, connection banner | 🟡 | Statically checked only |
+| Phase 4 DB: `0003_social.sql` (cancel request), `0004_social_hardening.sql` (per-pair advisory lock, `already_friends`, spam cap) | 🟡 | Never executed |
+| Phase 4 DB security test `supabase/tests/social_rls.sql` (30+ assertions; rolls back) | 🟡 | Written to be run by you in the SQL editor |
+| Phase 4 realtime lifecycle (foreground-only, 8 s stop grace, network-aware sleep/reconnect, jittered backoff, 15-min token margin) | 🟡 | `Backoff` + token margin unit-tested (Kotlin, unrun); rest is design |
+| Chat, voice/image messages, push, calls, customization, release APK | ⬜ | Phases 5–9 |
+
+**Phase 4 verdict: implemented; available tests pass (30/30 Node); NOT yet verified end to end.** I will not call it complete
+until you confirm: (1) it builds, (2) `./gradlew test` is green, (3) `social_rls.sql` prints ALL SOCIAL RLS TESTS PASSED,
+(4) `realtime-smoke.mjs` prints ALL REALTIME CHECKS PASSED, (5) two phones can friend each other and see presence.
+
+## Security properties (enforced in PostgreSQL, not the app)
+- `friendships`: clients have SELECT only (own rows via RLS). Every write goes through `security definer` functions that use `auth.uid()`.
+- Duplicate/crossed requests: unique index on the unordered pair + per-pair advisory lock; crossed requests auto-accept.
+- Only the addressee can accept/decline; only the requester can cancel; either side can remove an accepted friend; strangers affect nothing.
+- Direct chats/messages require an accepted friendship (`can_post`); unfriending closes the chat.
+- `anon` cannot call any social function or read profiles (only `username_available`).
+
+## Known limitations (documented, accepted for zero cost)
+- Presence uses one shared channel: any signed-in client can see which user **ids** are online (ids only; usernames still need a profile lookup). Fine at small scale; Supabase free tier limits concurrent connections (~200) and presence payload grows with users.
+- Realtime DELETE events are not RLS-filtered by Supabase (they carry only the row id). We treat events as hints and re-query, so nothing sensitive is exposed.
+- `search_users` allows prefix enumeration (min 2 chars, 20 results). No per-user rate limit yet.
+- "Online" means "app visible", by design (socket closes ~8 s after backgrounding). Background delivery will be push (Phase 6).
+- `show_online = false` is honored by the client (it simply does not track presence); a modified client could ignore it.
+- "Glass" = translucency + borders, not backdrop blur (performance on Redmi Note 9 Pro).
 
 ## External requirements
-Supabase project (free) + free SMTP for password-reset email (see COSTS.md) · Firebase project + `google-services.json` + service account · a host for `backend/` · (Phase 7) TURN decision.
-
-## Known limitations / decisions
-- "Glass" is translucency + borders, not true backdrop blur (performance on Redmi Note 9 Pro).
-- Online status will use Realtime Presence (not stored); `show_online=false` is enforced client-side.
-- Profiles are readable by all signed-in users (needed for search and global chat).
-- Backend has no rate limiting yet; add before public launch.
+Free Supabase project · free SMTP for password-reset email (see COSTS.md) · Android Studio to build.

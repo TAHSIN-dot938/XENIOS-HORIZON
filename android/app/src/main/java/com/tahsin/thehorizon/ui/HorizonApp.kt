@@ -20,7 +20,7 @@ import com.tahsin.thehorizon.ui.auth.AuthViewModel
 import com.tahsin.thehorizon.ui.components.AmbientBackground
 import com.tahsin.thehorizon.ui.home.NotConfiguredScreen
 import com.tahsin.thehorizon.ui.home.ProfileErrorScreen
-import com.tahsin.thehorizon.ui.home.ProfileScreen
+import com.tahsin.thehorizon.ui.home.HomeShell
 import com.tahsin.thehorizon.ui.splash.SplashScreen
 import com.tahsin.thehorizon.ui.theme.HorizonColors
 
@@ -58,7 +58,7 @@ fun HorizonApp() {
                 val authVm: AuthViewModel = viewModel(factory = factory)
                 AuthScreen(authVm)
             }
-            Screen.HOME -> (state as? SessionState.SignedIn)?.let { ProfileScreen(it.profile, sessionVm::signOut) }
+            Screen.HOME -> (state as? SessionState.SignedIn)?.let { HomeShell(it.profile, factory, sessionVm::signOut) }
             Screen.PROFILE_ERROR -> (state as? SessionState.ProfileError)?.let {
                 ProfileErrorScreen(it.message, sessionVm::retry, sessionVm::signOut)
             }

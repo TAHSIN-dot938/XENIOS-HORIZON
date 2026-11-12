@@ -72,9 +72,14 @@ class AuthRepository(
 
     suspend fun usernameAvailable(username: String): Boolean = api.usernameAvailable(username.trim())
 
-    suspend fun validAccessToken(): String = mutex.withLock {
+    /**
+     * Returns a token valid for at least [minValiditySec] more seconds, refreshing if needed.
+     * Long-lived consumers (the realtime socket) ask for a larger margin so a token handed to
+     * them cannot expire before their next refresh tick.
+     */
+    suspend fun validAccessToken(minValiditySec: Long = 60): String = mutex.withLock {
         val current = _session.value ?: throw AuthException(AuthErrorCode.NOT_SIGNED_IN, "Please sign in.")
-        if (!current.isExpiring(clock())) return@withLock current.accessToken
+        if (!current.isExpiring(clock(), minValiditySec)) return@withLock current.accessToken
         val fresh = try {
             api.refresh(current.refreshToken)
         } catch (e: AuthException) {

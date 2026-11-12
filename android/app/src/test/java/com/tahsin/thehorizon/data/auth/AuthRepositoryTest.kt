@@ -78,6 +78,15 @@ class AuthRepositoryTest {
         assertEquals("fresh", r.validAccessToken()); assertEquals(1, calls)
     }
 
+    @Test fun longLivedConsumersCanDemandALargerValidityMargin() = runBlocking {
+        var refreshes = 0
+        val http = FakeHttpClient { refreshes++; ok(sessionJson(access = "fresh", expiresAt = 99_000)) }
+        saved(expiresAt = 1_000 + 600)                       // valid for 10 more minutes
+        val r = repo(http); r.restore()
+        assertEquals("old-acc", r.validAccessToken()); assertEquals(0, refreshes)            // fine for normal use
+        assertEquals("fresh", r.validAccessToken(minValiditySec = 15 * 60)); assertEquals(1, refreshes)   // not enough for the socket
+    }
+
     @Test fun validAccessTokenWhenSignedOutThrows() {
         try {
             runBlocking { repo(FakeHttpClient { ok("") }).validAccessToken() }

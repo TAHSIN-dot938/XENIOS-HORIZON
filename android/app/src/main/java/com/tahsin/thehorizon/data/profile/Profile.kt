@@ -8,4 +8,6 @@ data class Profile(
     val displayName: String,
     val bio: String,
     val avatarStyle: Int,
+    /** When false the user opted out of appearing online to friends. */
+    val showOnline: Boolean = true,
 )

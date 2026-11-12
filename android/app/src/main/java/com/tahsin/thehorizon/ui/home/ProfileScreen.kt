@@ -25,39 +25,36 @@ import com.tahsin.thehorizon.ui.components.HorizonButton
 import com.tahsin.thehorizon.ui.theme.HorizonColors
 import com.tahsin.thehorizon.ui.theme.Spacing
 
-/** Signed-in landing screen for now; the tabbed navigation shell arrives with Phase 4. */
+/** Profile tab (content only; the shell provides background and insets). */
 @Composable
-fun ProfileScreen(profile: Profile, onSignOut: () -> Unit) {
-    AmbientBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            GlowAvatar(name = profile.displayName, size = 112.dp, styleIndex = profile.avatarStyle)
-            Spacer(Modifier.height(Spacing.md))
-            Text(profile.displayName, style = MaterialTheme.typography.headlineSmall, color = HorizonColors.TextPrimary)
-            Text("@${profile.username}", style = MaterialTheme.typography.bodyLarge, color = HorizonColors.PurpleSoft)
-            Spacer(Modifier.height(Spacing.lg))
+fun ProfileTab(profile: Profile, onSignOut: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        GlowAvatar(name = profile.displayName, size = 112.dp, styleIndex = profile.avatarStyle)
+        Spacer(Modifier.height(Spacing.md))
+        Text(profile.displayName, style = MaterialTheme.typography.headlineSmall, color = HorizonColors.TextPrimary)
+        Text("@${profile.username}", style = MaterialTheme.typography.bodyLarge, color = HorizonColors.PurpleSoft)
+        Spacer(Modifier.height(Spacing.lg))
 
-            GlassCard(Modifier.fillMaxWidth()) {
-                Text("YOUR HORIZON ID", style = MaterialTheme.typography.labelSmall, color = HorizonColors.TextSecondary)
-                Spacer(Modifier.height(Spacing.xs))
-                Text(profile.userNumber, style = MaterialTheme.typography.headlineSmall, color = HorizonColors.TextPrimary)
-                Spacer(Modifier.height(Spacing.xs))
-                Text(
-                    "Friends can find you with this number or your username.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = HorizonColors.TextSecondary,
-                )
-            }
-            Spacer(Modifier.height(Spacing.lg))
-            HorizonButton(text = "SIGN OUT", onClick = onSignOut)
+        GlassCard(Modifier.fillMaxWidth()) {
+            Text("YOUR HORIZON ID", style = MaterialTheme.typography.labelSmall, color = HorizonColors.TextSecondary)
+            Spacer(Modifier.height(Spacing.xs))
+            Text(profile.userNumber, style = MaterialTheme.typography.headlineSmall, color = HorizonColors.TextPrimary)
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "Friends can find you with this number or your username.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = HorizonColors.TextSecondary,
+            )
         }
+        Spacer(Modifier.height(Spacing.lg))
+        HorizonButton(text = "SIGN OUT", onClick = onSignOut)
     }
 }
 

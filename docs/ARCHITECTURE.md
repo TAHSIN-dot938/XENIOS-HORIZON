@@ -37,3 +37,18 @@ Single Activity, Navigation-Compose, ViewModel + StateFlow, manual DI container 
 
 ## Repo layout
 `android/` app · `backend/` Node server · `supabase/migrations/` SQL · `docs/` documentation
+
+## Realtime design (Phase 4)
+One OkHttp WebSocket to `wss://<project>.supabase.co/realtime/v1/websocket?apikey=<anon>&vsn=1.0.0`, two Phoenix channels:
+
+| Channel | Purpose | Join payload |
+|---|---|---|
+| `realtime:horizon-db` | Postgres Changes on `public.friendships` (RLS-filtered by the user's JWT) | `config.postgres_changes=[{event:"*",schema:"public",table:"friendships"}]`, `access_token` |
+| `realtime:horizon-presence` | Shared presence; `config.presence.key = userId` (multi-device collapses to one user) | same, no tables; after a successful join the client sends `presence/track` unless the user hid their status |
+
+Frames: `{topic,event,payload,ref}`. Heartbeat every 25 s on topic `phoenix`. `access_token` events re-authenticate both channels every 10 min
+using a token guaranteed valid for ≥15 min. Join rejection or `phx_close/phx_error` closes the socket and the reconnect loop takes over.
+
+**Lifecycle / battery:** socket exists only while the app is visible (`ON_START`…`ON_STOP` + 8 s grace so rotation/app-switch don't churn).
+While the device has no network the loop *sleeps* (no timers firing, no retries); when `ConnectivityManager` reports a network it reconnects
+immediately; otherwise backoff 1→30 s with 25% jitter. Every (re)connect re-queries friendships, so missed events never matter ("events are hints").
