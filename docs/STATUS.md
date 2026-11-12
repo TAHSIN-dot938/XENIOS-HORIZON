@@ -17,7 +17,7 @@ must be confirmed by you with the steps in `docs/SETUP.md` ("Verify it works").
 | **Phase 4** social data layer (search, friendships, requests, parsing, friendly errors) | 🟡 | 23 Kotlin tests written, not run |
 | Phase 4 UI: Friends (online/offline sections), Discover (debounced search), Requests, bottom navigation, toasts, connection banner | 🟡 | Statically checked only |
 | Phase 4 DB: `0003_social.sql` (cancel request), `0004_social_hardening.sql` (per-pair advisory lock, `already_friends`, spam cap) | 🟡 | Never executed |
-| Phase 4 DB security test `supabase/tests/social_rls.sql` (30+ assertions; rolls back) | 🟡 | Written to be run by you in the SQL editor |
+| Phase 4 DB security test `supabase/tests/social_rls.sql` (25 checks; rolls back) | 🟡 | Written to be run by you in the SQL editor |
 | Phase 4 realtime lifecycle (foreground-only, 8 s stop grace, network-aware sleep/reconnect, jittered backoff, 15-min token margin) | 🟡 | `Backoff` + token margin unit-tested (Kotlin, unrun); rest is design |
 | Chat, voice/image messages, push, calls, customization, release APK | ⬜ | Phases 5–9 |
 
