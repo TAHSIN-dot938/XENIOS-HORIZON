@@ -124,6 +124,7 @@ class SocialViewModel(
         val me = profile ?: return
         try {
             val snap = repo.load(me.id)
+            if (profile?.id != me.id) return          // signed out / switched account while loading: discard
             lastRefreshMs = System.currentTimeMillis()
             _state.update {
                 it.copy(

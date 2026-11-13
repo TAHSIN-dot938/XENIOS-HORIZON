@@ -3,6 +3,7 @@ package com.tahsin.thehorizon.ui.social
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tahsin.thehorizon.data.auth.AuthException
+import com.tahsin.thehorizon.data.auth.AuthRepository
 import com.tahsin.thehorizon.data.http.ApiException
 import com.tahsin.thehorizon.data.social.Relation
 import com.tahsin.thehorizon.data.social.SearchResult
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -28,14 +30,31 @@ data class DiscoverUiState(
     val message: String? = null,
 )
 
-class DiscoverViewModel(private val repo: SocialRepository) : ViewModel() {
+class DiscoverViewModel(
+    private val repo: SocialRepository,
+    private val auth: AuthRepository,
+) : ViewModel() {
     private val _state = MutableStateFlow(DiscoverUiState())
     val state: StateFlow<DiscoverUiState> = _state.asStateFlow()
     private val queries = MutableStateFlow("")
+    /** Bumped on sign-out so a search still in flight cannot write the previous user's results. */
+    private var epoch = 0
 
     @OptIn(FlowPreview::class)
     private val searchJob = viewModelScope.launch {
         queries.debounce(350).distinctUntilChanged().collectLatest { search(it, silent = false) }
+    }
+
+    init {
+        viewModelScope.launch {
+            auth.session.map { it?.userId }.distinctUntilChanged().collect { userId ->
+                if (userId == null) {          // signed out: forget the query and results
+                    epoch++
+                    queries.value = ""
+                    _state.value = DiscoverUiState()
+                }
+            }
+        }
     }
 
     fun onQuery(value: String) {
@@ -81,8 +100,10 @@ class DiscoverViewModel(private val repo: SocialRepository) : ViewModel() {
             return
         }
         if (!silent) _state.update { it.copy(loading = true, error = null) }
+        val startedInEpoch = epoch
         try {
             val results = repo.search(q)
+            if (startedInEpoch != epoch) return
             _state.update { it.copy(results = results, loading = false, searched = true, error = null) }
         } catch (e: ApiException) {
             _state.update { it.copy(loading = false, error = e.message) }

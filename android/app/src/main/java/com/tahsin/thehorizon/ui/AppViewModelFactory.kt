@@ -15,7 +15,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
         modelClass.isAssignableFrom(AuthViewModel::class.java) -> AuthViewModel(container.authRepository) as T
         modelClass.isAssignableFrom(SocialViewModel::class.java) ->
             SocialViewModel(container.authRepository, container.socialRepository, container::newRealtime) as T
-        modelClass.isAssignableFrom(DiscoverViewModel::class.java) -> DiscoverViewModel(container.socialRepository) as T
+        modelClass.isAssignableFrom(DiscoverViewModel::class.java) -> DiscoverViewModel(container.socialRepository, container.authRepository) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }

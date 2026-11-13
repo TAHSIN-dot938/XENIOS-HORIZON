@@ -27,7 +27,7 @@ Create a Firebase project → add Android app `com.tahsin.thehorizon` → downlo
 The FCM plugin and code are added in Phase 6.
 
 ## 4. Android
-1. Install Android Studio (Ladybug or newer). Open the `android/` folder; let it sync (it generates the Gradle wrapper).
+1. Install Android Studio (Ladybug or newer). Open the `android/` folder; Studio downloads Gradle 8.9 from `gradle/wrapper/gradle-wrapper.properties`. No Android Studio? Let GitHub build it for free: `docs/BUILD_APK.md`.
 2. `cp local.properties.example local.properties` and fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BACKEND_URL`.
 3. Run on a device/emulator, or `./gradlew assembleDebug` → `app/build/outputs/apk/debug/`.
 4. Unit tests: `./gradlew test`.

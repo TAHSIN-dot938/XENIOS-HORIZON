@@ -1,5 +1,12 @@
 # Status (honest)
 
+## BUILD STATUS: APK NOT BUILT — environment blocker (not a code failure)
+Probe run in my workspace (`java` 21 only): no Android SDK (`ANDROID_HOME` empty, no `android.jar`/`aapt2`/`d8`/`apksigner`),
+no Gradle, no Kotlin compiler, no Gradle/Maven caches, and every outbound connection fails (dl.google.com, maven.google.com,
+repo.maven.apache.org, services.gradle.org, github.com all return no response). Android Gradle builds need all of these, so
+**an APK cannot be produced here, and none is claimed.** Zero-cost fix: `.github/workflows/android-build.yml` builds it on GitHub's free
+runners (see `docs/BUILD_APK.md`). Nothing about the app code has been observed compiling yet.
+
 Legend: ✅ verified here by execution · 🟡 written, NOT executed (needs your Android Studio / Supabase) · ⬜ not started
 
 ## Verification environment limits
@@ -24,6 +31,19 @@ must be confirmed by you with the steps in `docs/SETUP.md` ("Verify it works").
 **Phase 4 verdict: implemented; available tests pass (30/30 Node); NOT yet verified end to end.** I will not call it complete
 until you confirm: (1) it builds, (2) `./gradlew test` is green, (3) `social_rls.sql` prints ALL SOCIAL RLS TESTS PASSED,
 (4) `realtime-smoke.mjs` prints ALL REALTIME CHECKS PASSED, (5) two phones can friend each other and see presence.
+
+## Phase 4 verification review (latest changes)
+| Item | Result |
+|---|---|
+| ZIP vs commit `29293bc` (the previously delivered ZIP) | ✅ 99/99 files byte-identical, none missing/extra |
+| Migrations 0001-0004 static lint | ✅ no DROP/TRUNCATE/data deletes; 17 SECURITY DEFINER functions all pin `search_path`; every GRANT names a defined function; no duplicate object creation; balanced quotes/parens/`$$` |
+| Migration safety | 🔧 Fixed: `0001` now aborts if `public` already has tables (it has sweeping REVOKEs) |
+| Cross-account data leak | 🔧 Fixed: stale refresh/search results could be written into another account's state after sign-out; added identity/epoch guards and Discover reset on sign-out |
+| Unused dependency | 🔧 Removed `navigation-compose` (not used anywhere) |
+| Gradle wrapper config | 🔧 Added `gradle-wrapper.properties` (Gradle 8.9; AGP 8.6.1 needs ≥ 8.7) |
+| Kotlin compile risk | Static only: balanced syntax, all project imports resolve, no used-but-unimported project symbols, 50 test→main member calls cross-checked. **Not compiled.** |
+| Node tests | ✅ 30/30 (executed) |
+| CI workflow | ✅ valid YAML; its test-summary script executed against fake results and counted correctly; the build itself not yet run |
 
 ## Security properties (enforced in PostgreSQL, not the app)
 - `friendships`: clients have SELECT only (own rows via RLS). Every write goes through `security definer` functions that use `auth.uid()`.

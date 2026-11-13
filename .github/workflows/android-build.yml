@@ -1,0 +1,112 @@
+# Builds the debug APK in GitHub's free cloud (Ubuntu runners ship with the Android SDK).
+# Free: unlimited minutes for public repos; 2,000 min/month for private repos (a build takes ~8-12 min).
+# Output: downloadable artifact "the-horizon-debug-apk" + a summary of package/SDK/signing/tests.
+name: android-build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Write local.properties (secrets never enter git)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          {
+            echo "sdk.dir=${ANDROID_HOME}"
+            echo "SUPABASE_URL=${SUPABASE_URL}"
+            echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
+            echo "BACKEND_URL=${BACKEND_URL}"
+          } > local.properties
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::warning::SUPABASE_URL / SUPABASE_ANON_KEY repository secrets are not set. The APK will build and launch but will show 'Backend not configured'."
+          fi
+
+      - name: Generate Gradle wrapper (so the exact ./gradlew command works)
+        run: gradle wrapper --gradle-version 8.9
+
+      - name: Clean build - debug APK
+        run: ./gradlew clean assembleDebug --stacktrace
+
+      - name: Inspect APK (package, SDK levels, version, signing, size)
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          {
+            echo "## APK"
+            echo '```'
+            echo "file:   $APK"
+            echo "size:   $(stat -c %s "$APK") bytes ($(du -h "$APK" | cut -f1))"
+            echo "sha256: $(sha256sum "$APK" | cut -d' ' -f1)"
+            "$BT/aapt2" dump badging "$APK" | grep -E "^package:|^sdkVersion:|^targetSdkVersion:|^application-label:"
+            echo "--- permissions"
+            "$BT/aapt2" dump permissions "$APK" | grep -E "^uses-permission"
+            echo "--- signature"
+            "$BT/apksigner" verify --verbose --print-certs "$APK" | head -8
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-horizon-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      # Tests run AFTER the APK is published, so a failing test can never hide the APK.
+      - name: Unit tests
+        id: tests
+        continue-on-error: true
+        run: ./gradlew testDebugUnitTest --continue --stacktrace
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          t=f=e=s=0
+          for p in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              r=ET.parse(p).getroot()
+              t+=int(r.get('tests',0)); f+=int(r.get('failures',0)); e+=int(r.get('errors',0)); s+=int(r.get('skipped',0))
+          print("## Android unit tests")
+          print(f"tests={t} passed={t-f-e-s} failures={f} errors={e} skipped={s}")
+          PY
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+
+      - name: Fail the job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "::error::Unit tests failed - see the android-test-reports artifact. The APK artifact was still published."
+          exit 1

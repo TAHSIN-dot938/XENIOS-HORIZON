@@ -3,6 +3,15 @@
 -- Not yet executed against a real Postgres: review before applying.
 
 -- ───────────────────────── Profiles ─────────────────────────
+-- SAFETY GUARD: this migration revokes grants across the whole public schema, so it must only ever
+-- run on a NEW, empty Supabase project. It aborts (changing nothing) if public already has tables.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public') then
+    raise exception 'Refusing to run 0001_core.sql: the public schema already contains tables. Use a NEW Supabase project (never your old Horizon project).';
+  end if;
+end $$;
+
 create sequence public.user_number_seq start 1;
 
 create table public.profiles (
